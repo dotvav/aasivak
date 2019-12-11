@@ -1,0 +1,12 @@
+api_username:
+api_password:
+api_url: https://ha117-1.overkiz.com/enduser-mobile-web/enduserAPI
+api_user_agent: aasivak
+
+mqtt_discovery_prefix: homeassistant
+mqtt_state_prefix: hikumo/state
+mqtt_command_prefix: hikumo/command
+mqtt_host: 127.0.0.1
+mqtt_client_name: hikumo
+#mqtt_username: 
+#mqtt_password: 
