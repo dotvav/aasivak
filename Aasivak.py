@@ -184,6 +184,8 @@ class Config:
     mqtt_password = None
     mqtt_client_name = "aasivak"
     logging_level = "INFO"
+    refresh_delays = [3, 5, 10, 30]
+    refresh_delay_randomness = 2
 
     def __init__(self, raw):
         self.api_username = raw["api_username"]
@@ -198,6 +200,8 @@ class Config:
         self.mqtt_password = raw.get("mqtt_password", self.mqtt_password)
         self.mqtt_client_name = raw.get("mqtt_client_name", self.mqtt_client_name)
         self.logging_level = raw.get("logging_level", self.logging_level)
+        self.refresh_delays = raw.get("refresh_delays", self.refresh_delays)
+        self.refresh_delay_randomness = raw.get("refresh_delay_randomness", self.refresh_delay_randomness)
 
 
 ################
@@ -205,6 +209,7 @@ class Config:
 class HikumoAdapter:
     def __init__(self, config):
         self.config = config
+        self.delayer = Delayer([1], 2)
         self.session = requests.Session()
 
     def get_api(self, url, data, headers, retry=1):
@@ -215,6 +220,7 @@ class HikumoAdapter:
             response = None
 
         if (response is None or response.status_code != 200) and retry > 0:
+            time.sleep(self.delayer.next())
             self.login()
             return self.get_api(url, data, headers, retry - 1)
         else:
@@ -228,6 +234,7 @@ class HikumoAdapter:
             response = None
 
         if (response is None or response.status_code != 200) and retry > 0:
+            time.sleep(self.delayer.next())
             self.login()
             return self.post_api(url, data, headers, retry - 1)
         else:
@@ -251,6 +258,21 @@ class HikumoAdapter:
 
 ################
 
+class Delayer:
+    def __init__(self, delays, randomness):
+        self.delays = delays
+        self.delay_index = 0
+        self.randomness = randomness
+
+    def reset(self):
+        self.delay_index = 0
+
+    def next(self):
+        delay = self.delays[self.delay_index] + self.randomness * (random.random() - .5)
+        self.delay_index = min(len(self.delays) - 1, self.delay_index + 1)
+        return delay
+
+
 class House:
     def __init__(self):
         self.config = self.read_config()
@@ -260,7 +282,7 @@ class House:
             self.mqtt_client.username_pw_set(self.config.mqtt_username, self.config.mqtt_password)
         self.mqtt_client.connect(self.config.mqtt_host, self.config.mqtt_port)
         self.devices = {}
-        self.devices = {}
+        self.delayer = Delayer(self.config.refresh_delays, self.config.refresh_delay_randomness)
         self.hikumo = HikumoAdapter(self.config)
         self.hikumo.login()
 
@@ -326,7 +348,7 @@ class House:
         self.setup()
         self.register_all()
         while True:
-            time.sleep(29 + 2 * random.random())
+            time.sleep(self.delayer.next())
             self.refresh_all()
 
     def on_message(self, client, userdata, message):
@@ -336,12 +358,12 @@ class House:
         device_id = topic_tokens[len(topic_tokens) - 2]
         command = topic_tokens[len(topic_tokens) - 1]
         value = str(message.payload.decode("utf-8"))
-
         logging.info("MQTT message received device '" + device_id + "' command '" + command + "' value '" + value + "'")
 
         device = self.devices.get(device_id, None)
         if device is not None:
             device.on_message(message.topic, value)
+        self.delayer.reset()
 
 
 ################

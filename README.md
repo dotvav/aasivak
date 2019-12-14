@@ -40,7 +40,10 @@ Property | Usage | Note
 `mqtt_client_name` | the name that Aasivak will us on MQTT | You should probably not touch this.
 `mqtt_username` | the MQTT broker username | This is needed only if the MQTT broker requires an authenticated connection.
 `mqtt_password` | the MQTT broker password | This is needed only if the MQTT broker requires an authenticated connection.
+`refresh_delays` | list of waiting durations before calling the Hi-Kumo API to refresh devices state | If you set `[2, 5, 10, 30]` then Aasivak will call the Hi-Kumo API to refresh its state after 2s, then 5s, then 10s, and then every 30s. The delay is reset to 2s when Aasivak receives a command from HA. Some randomness is added to these delays: every time Aasivak needs to wait, it adds or remove up to `logging_delay_randomness/2` to the delay. 
+`logging_delay_randomness` | maximum number of seconds to add to all the waiting durations | See `refresh_delays`. Use `0` for no randomness.
 `logging_level` | Aasivak's logging level | INFO
+
 
 ### Start Aasivak manually
 ```
