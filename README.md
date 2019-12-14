@@ -27,20 +27,20 @@ You can either update the ```config/default.yml``` file or create a new file nam
 
 You will need to set the ```api_username``` and ```api_password``` keys. You may need to set the ```mqtt_host``` key if your MQTT broker is not running on the same machine as Aasivak. 
 
-* api_username: your Hi-Kumo login
-* api_password: your Hi-Kumo password
-* api_url: the Hi-Kumo API url (you should probably not touch this)
-* api_user_agent: the user agent string that Aasivak will use in the header of its HTTP requests to the Hi-Kumo API
-
-* mqtt_discovery_prefix: the MQTT topic prefix that HA is monitoring for discovery (you should probably not touch this) 
-* mqtt_state_prefix: the MQTT topic prefix that Aasivak will use to broadcast the devices state to HA
-* mqtt_command_prefix: the MQTT topic prefix that Aasivak will listen to for HA commands
-* mqtt_host: the host name or ip address of the MQTT broker
-* mqtt_client_name: the name that Aasivak will us on MQTT
-* mqtt_username: set if your MQTT broker requires authentication
-* mqtt_password: set if your MQTT broker requires authentication
-
-* logging_level: Aasivak's logging level
+Property | Usage | Note
+--- | --- | ---
+**`api_username`** | your Hi-Kumo login | You **must** set this.
+**`api_password`** | your Hi-Kumo password | You **must** set this.
+`api_url` | the Hi-Kumo API url | you should probably not touch this.
+`api_user_agent` | the user agent string that Aasivak will use in the header of its HTTP requests to the Hi-Kumo API.
+`mqtt_discovery_prefix` | the MQTT topic prefix that HA is monitoring for discovery | You should probably not touch this. HA's default is `homeassistant`. 
+`mqtt_state_prefix` | the MQTT topic prefix that Aasivak will use to broadcast the devices state to HA | You should probably not touch this.
+`mqtt_command_prefix` | the MQTT topic prefix that Aasivak will listen to for HA commands | You should probably not touch this.
+**`mqtt_host`** | the host name or ip address of the MQTT broker | Use `localhost` or `127.0.0.1` if the MQTT broker runs on the same machine as Aasivak.
+`mqtt_client_name` | the name that Aasivak will us on MQTT | You should probably not touch this.
+`mqtt_username` | the MQTT broker username | This is needed only if the MQTT broker requires an authenticated connection.
+`mqtt_password` | the MQTT broker password | This is needed only if the MQTT broker requires an authenticated connection.
+`logging_level` | Aasivak's logging level | INFO
 
 ### Start Aasivak manually
 ```
