@@ -156,7 +156,7 @@ class Device:
             }],
             "label": "change air to air heat pump command"
         }
-        self.house.post_api(self.house.config.api_url + "/" + "exec/apply", data,
+        self.house.hikumo.post_api(self.house.config.api_url + "/" + "exec/apply", data,
                             {'content-type': 'application/json; charset=UTF-8',
                              'user-agent': self.house.config.api_user_agent})
 
@@ -182,10 +182,10 @@ class Config:
     mqtt_port = 1883
     mqtt_username = None
     mqtt_password = None
-    mqtt_client_name = "hikumo"
+    mqtt_client_name = "aasivak"
+    logging_level = "INFO"
 
     def __init__(self, raw):
-        # TODO will raise an exception if login or password are missing
         self.api_username = raw["api_username"]
         self.api_password = raw["api_password"]
         self.api_user_agent = raw.get("api_user_agent", self.api_user_agent)
@@ -197,35 +197,15 @@ class Config:
         self.mqtt_username = raw.get("mqtt_username", self.mqtt_username)
         self.mqtt_password = raw.get("mqtt_password", self.mqtt_password)
         self.mqtt_client_name = raw.get("mqtt_client_name", self.mqtt_client_name)
+        self.logging_level = raw.get("logging_level", self.logging_level)
 
 
 ################
 
-class House:
-    def __init__(self):
-        self.config = self.read_config()
-        self.mqtt_client = mqtt.Client(self.config.mqtt_client_name)
-        if self.config.mqtt_username is not None:
-            self.mqtt_client.username_pw_set(self.config.mqtt_username, self.config.mqtt_password)
-        self.mqtt_client.connect(self.config.mqtt_host, self.config.mqtt_port)
-        self.devices = {}
+class HikumoAdapter:
+    def __init__(self, config):
+        self.config = config
         self.session = requests.Session()
-        self.devices = {}
-        self.login()
-
-    @staticmethod
-    def read_config():
-        with open("config/default.yml", 'r') as yml_file:
-            raw_default_config = yaml.safe_load(yml_file)
-
-        try:
-            with open("config/local.yml", 'r') as yml_file:
-                raw_local_config = yaml.safe_load(yml_file)
-                raw_default_config.update(raw_local_config)
-        except IOError:
-            logging.info("No local config file found")
-
-        return Config(raw_default_config)
 
     def get_api(self, url, data, headers, retry=1):
         try:
@@ -259,6 +239,44 @@ class House:
         headers = {'user-agent': self.config.api_user_agent,
                    'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}
         self.session.post(url, data=data, headers=headers)
+        logging.info("Logged into Hi-Kumo")
+
+    def fetch_api_setup_data(self):
+        url = self.config.api_url + "/setup"
+        data = {}
+        headers = {'user-agent': self.config.api_user_agent}
+        response = self.get_api(url, data, headers, 1)
+        return json.loads(response.text)
+
+
+################
+
+class House:
+    def __init__(self):
+        self.config = self.read_config()
+        logging.basicConfig(level=self.config.logging_level, format="%(asctime)-15s %(levelname)-8s %(message)s")
+        self.mqtt_client = mqtt.Client(self.config.mqtt_client_name)
+        if self.config.mqtt_username is not None:
+            self.mqtt_client.username_pw_set(self.config.mqtt_username, self.config.mqtt_password)
+        self.mqtt_client.connect(self.config.mqtt_host, self.config.mqtt_port)
+        self.devices = {}
+        self.devices = {}
+        self.hikumo = HikumoAdapter(self.config)
+        self.hikumo.login()
+
+    @staticmethod
+    def read_config():
+        with open("config/default.yml", 'r') as yml_file:
+            raw_default_config = yaml.safe_load(yml_file)
+
+        try:
+            with open("config/local.yml", 'r') as yml_file:
+                raw_local_config = yaml.safe_load(yml_file)
+                raw_default_config.update(raw_local_config)
+        except IOError:
+            logging.info("No local config file found")
+
+        return Config(raw_default_config)
 
     def register_all(self):
         for device_id, device in self.devices.items():
@@ -273,28 +291,22 @@ class House:
             device.unregister_mqtt(True)
 
     def refresh_all(self):
-        raw_data = self.fetch_api_data()
+        raw_data = self.hikumo.fetch_api_setup_data()
         for raw_device in raw_data["devices"]:
             if raw_device["type"] == 1:
                 device_id = raw_device["oid"]
                 name = raw_device["label"]
+                url = raw_device["deviceURL"]
                 if device_id in self.devices:
                     device = self.devices[device_id]
                 else:
-                    device = Device(self, device_id, name)
+                    device = Device(self, device_id, name, url)
                     self.devices[device.id] = device
                 device.update_states(raw_device["states"])
                 device.publish_state()
 
-    def fetch_api_data(self):
-        url = self.config.api_url + "/setup"
-        data = {}
-        headers = {'user-agent': self.config.api_user_agent}
-        response = self.get_api(url, data, headers, 1)
-        return json.loads(response.text)
-
     def setup(self):
-        raw_data = self.fetch_api_data()
+        raw_data = self.hikumo.fetch_api_setup_data()
         for raw_device in raw_data["devices"]:
             if raw_device["type"] == 1:
                 device_id = raw_device["oid"]
@@ -308,6 +320,7 @@ class House:
                 device.update_definitions(raw_device["definition"]["states"])
                 device.update_states(raw_device["states"])
                 device.update_mqtt_config()
+                logging.info("Device found: %s (%s|%s)", device.name, device.id, device.command_url)
 
     def loop_start(self):
         self.setup()
