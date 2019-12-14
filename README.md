@@ -18,8 +18,8 @@ And to activate MQTT discovery: [MQTT discovery](https://www.home-assistant.io/d
 ### Clone the Aasivak repo
 ```
 git clone https://www.github.com/dotvav/aasivak.git
-cd Aasivak
-python3 -m pip install -r requirements.txt
+cd aasivak
+pip3 install -r requirements.txt
 ```
 
 ### Change the configuration
@@ -48,8 +48,31 @@ python3 Aasivak.py
 ```
 
 ### Start Aasivak as a systemd service
-TODO
+Create the following ```/etc/systemd/system/aasivak.service``` file (change the paths as required):
 
+```
+[Unit]
+Description=Aasivak
+Documentation=https://github.com/dotvav/aasivak
+After=network.target
+
+[Service]
+Type=simple
+User=homeassistant
+WorkingDirectory=/home/homeassistant/aasivak
+ExecStart=/usr/bin/python3 /home/homeassistant/aasivak/Aasivak.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Run the following to enable and run the service, and see what its status is:
+```
+sudo systemctl enable aasivak.service
+sudo systemctl start aasivak.service
+sudo systemctl status aasivak.service
+```
 
 ## Dependencies
 
