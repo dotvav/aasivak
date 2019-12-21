@@ -4,7 +4,7 @@ setup(
     name='Aasivak',
     version='0.1.0',
     packages=[''],
-    url='https://aasivak.ruk.info/',
+    url='https://github.com/dotvav/aasivak',
     license='',
     author='dotvav',
     author_email='',

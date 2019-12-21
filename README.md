@@ -36,6 +36,7 @@ Property | Usage | Note
 `mqtt_discovery_prefix` | the MQTT topic prefix that HA is monitoring for discovery | You should probably not touch this. HA's default is `homeassistant`. 
 `mqtt_state_prefix` | the MQTT topic prefix that Aasivak will use to broadcast the devices state to HA | You should probably not touch this.
 `mqtt_command_prefix` | the MQTT topic prefix that Aasivak will listen to for HA commands | You should probably not touch this.
+`mqtt_reset_topic` | the MQTT topic where Aasivak receives reset commands | Send any message on this topic to tell Aasivak it must re-register all the devices. You should create an automation to do that every time HA starts.
 **`mqtt_host`** | the host name or ip address of the MQTT broker | Use `localhost` or `127.0.0.1` if the MQTT broker runs on the same machine as Aasivak.
 `mqtt_client_name` | the name that Aasivak will us on MQTT | You should probably not touch this.
 `mqtt_username` | the MQTT broker username | This is needed only if the MQTT broker requires an authenticated connection.

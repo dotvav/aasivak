@@ -12,6 +12,7 @@ import yaml
 
 # TODO: figure out how to set and unset the "GREEN" state
 # TODO: figure out how to set and unset the "leave_home" state
+# TODO: expose the outside temperature as a separate sensor
 
 ################
 
@@ -170,14 +171,17 @@ class Device:
             mqtt_client.publish(self.mqtt_config["swing_mode_state_topic"], self.swing_mode)
 
 
+################
+
 class Config:
     api_username = None
     api_password = None
     api_url = "https://ha117-1.overkiz.com/enduser-mobile-web/enduserAPI"
-    api_user_agent = 'Dalvik/2.1.0 (Linux; U; Android 9; EML-L29 Build/HUAWEIEML-L29) application/hitachi'
+    api_user_agent = 'aasivak'
     mqtt_discovery_prefix = "homeassistant"
     mqtt_state_prefix = "hikumo/state"
     mqtt_command_prefix = "hikumo/command"
+    mqtt_reset_topic = "hikumo/reset"
     mqtt_host = "127.0.0.1"
     mqtt_port = 1883
     mqtt_username = None
@@ -190,10 +194,12 @@ class Config:
     def __init__(self, raw):
         self.api_username = raw["api_username"]
         self.api_password = raw["api_password"]
+        self.api_url = raw["api_url"]
         self.api_user_agent = raw.get("api_user_agent", self.api_user_agent)
         self.mqtt_discovery_prefix = raw.get("mqtt_discovery_prefix", self.mqtt_discovery_prefix)
         self.mqtt_state_prefix = raw.get("mqtt_state_prefix", self.mqtt_state_prefix)
         self.mqtt_command_prefix = raw.get("mqtt_command_prefix", self.mqtt_command_prefix)
+        self.mqtt_reset_topic = raw.get("mqtt_reset_topic", self.mqtt_reset_topic)
         self.mqtt_host = raw.get("mqtt_host", self.mqtt_host)
         self.mqtt_port = raw.get("mqtt_port", self.mqtt_port)
         self.mqtt_username = raw.get("mqtt_username", self.mqtt_username)
@@ -273,6 +279,8 @@ class Delayer:
         return delay
 
 
+################
+
 class House:
     def __init__(self):
         self.config = self.read_config()
@@ -343,6 +351,7 @@ class House:
                 device.update_states(raw_device["states"])
                 device.update_mqtt_config()
                 logging.info("Device found: %s (%s|%s)", device.name, device.id, device.command_url)
+        self.mqtt_client.subscribe(self.config.mqtt_reset_topic, 0)
 
     def loop_start(self):
         self.setup()
@@ -352,6 +361,10 @@ class House:
             self.refresh_all()
 
     def on_message(self, client, userdata, message):
+        if message.topic == self.config.mqtt_reset_topic:
+            self.setup()
+            return
+
         topic_tokens = message.topic.split('/')
         # TODO validation
 
