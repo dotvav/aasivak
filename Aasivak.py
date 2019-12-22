@@ -376,6 +376,7 @@ class House:
     def on_message(self, client, userdata, message):
         if message.topic == self.config.mqtt_reset_topic:
             self.setup()
+            self.register_all()
             return
 
         topic_tokens = message.topic.split('/')
