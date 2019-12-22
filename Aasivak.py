@@ -225,11 +225,17 @@ class HikumoAdapter:
             logging.warning(e)
             response = None
 
-        if (response is None or response.status_code != 200) and retry > 0:
-            time.sleep(self.delayer.next())
-            self.login()
-            return self.get_api(url, data, headers, retry - 1)
+        if response is None or response.status_code != 200:
+            if retry > 0:
+                logging.debug("API call failed. Retrying.")
+                time.sleep(self.delayer.next())
+                self.login()
+                return self.get_api(url, data, headers, retry - 1)
+            else:
+                logging.warning("API call failed. No more retry.")
+                return {}
         else:
+            logging.debug("API response: %s", response.text)
             return response
 
     def post_api(self, url, data, headers, retry=1):
@@ -239,11 +245,17 @@ class HikumoAdapter:
             logging.warning(e)
             response = None
 
-        if (response is None or response.status_code != 200) and retry > 0:
-            time.sleep(self.delayer.next())
-            self.login()
-            return self.post_api(url, data, headers, retry - 1)
+        if response is None or response.status_code != 200:
+            if retry > 0:
+                logging.debug("API call failed. Retrying.")
+                time.sleep(self.delayer.next())
+                self.login()
+                return self.post_api(url, data, headers, retry - 1)
+            else:
+                logging.warning("API call failed. No more retry.")
+                return {}
         else:
+            logging.debug("API response: %s", response.text)
             return response
 
     def login(self):
@@ -311,12 +323,14 @@ class House:
     def register_all(self):
         for device_id, device in self.devices.items():
             device.register_mqtt(True)
+        self.mqtt_client.subscribe(self.config.mqtt_reset_topic, 0)
         self.mqtt_client.on_message = self.on_message
         self.mqtt_client.loop_start()
 
     def unregister_all(self):
         self.mqtt_client.on_message(None)
         self.mqtt_client.loop_stop()
+        self.mqtt_client.unsubscribe(self.config.mqtt_reset_topic, 0)
         for device_id, device in self.devices.items():
             device.unregister_mqtt(True)
 
@@ -351,7 +365,6 @@ class House:
                 device.update_states(raw_device["states"])
                 device.update_mqtt_config()
                 logging.info("Device found: %s (%s|%s)", device.name, device.id, device.command_url)
-        self.mqtt_client.subscribe(self.config.mqtt_reset_topic, 0)
 
     def loop_start(self):
         self.setup()
