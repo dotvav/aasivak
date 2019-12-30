@@ -42,6 +42,15 @@ class Device:
         "self.outdoor_temperature"
     ]
 
+    # Key = Hi-Kumo mode, Value = HA mode
+    modes_map = {
+        "auto": "auto",
+        "cooling": "cool",
+        "dehumidify": "dry",
+        "fan": "fan_only",
+        "heating": "heat"
+    }
+
     def __init__(self, house, device_id, name, command_url):
         self.house = house
         self.id = device_id
@@ -94,7 +103,7 @@ class Device:
             "fan_mode_command_topic": self.house.config.mqtt_command_prefix + "/" + self.id + "/fan_mode",
             "swing_mode_command_topic": self.house.config.mqtt_command_prefix + "/" + self.id + "/swing_mode",
 
-            "modes": self.modes,
+            "modes": list(filter(lambda m: m, map(lambda m: self.modes_map.get(m, None), self.modes))),
             "fan_modes": self.fan_modes,
             "swing_modes": self.swing_modes,
             "device": {"identifiers": self.id, "manufacturer": "Hitachi", "model": self.product_name}
@@ -165,7 +174,7 @@ class Device:
         mqtt_client = self.house.mqtt_client
         if mqtt_client is not None:
             mqtt_client.publish(self.mqtt_config["current_temperature_topic"], self.temperature)
-            mqtt_client.publish(self.mqtt_config["mode_state_topic"], self.mode)
+            mqtt_client.publish(self.mqtt_config["mode_state_topic"], self.modes_map[self.mode] or "auto")
             mqtt_client.publish(self.mqtt_config["temperature_state_topic"], self.target_temperature)
             mqtt_client.publish(self.mqtt_config["fan_mode_state_topic"], self.fan_mode)
             mqtt_client.publish(self.mqtt_config["swing_mode_state_topic"], self.swing_mode)
@@ -370,8 +379,8 @@ class House:
         self.setup()
         self.register_all()
         while True:
-            time.sleep(self.delayer.next())
             self.refresh_all()
+            time.sleep(self.delayer.next())
 
     def on_message(self, client, userdata, message):
         if message.topic == self.config.mqtt_reset_topic:
