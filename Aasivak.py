@@ -330,18 +330,18 @@ class House:
         return Config(raw_default_config)
 
     def register_all(self):
+        self.mqtt_client.loop_start()
         for device_id, device in self.devices.items():
             device.register_mqtt(True)
         self.mqtt_client.subscribe(self.config.mqtt_reset_topic, 0)
         self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.loop_start()
 
     def unregister_all(self):
         self.mqtt_client.on_message(None)
-        self.mqtt_client.loop_stop()
         self.mqtt_client.unsubscribe(self.config.mqtt_reset_topic, 0)
         for device_id, device in self.devices.items():
             device.unregister_mqtt(True)
+        self.mqtt_client.loop_stop()
 
     def refresh_all(self):
         raw_data = self.hikumo.fetch_api_setup_data()
