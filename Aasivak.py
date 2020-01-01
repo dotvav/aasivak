@@ -10,9 +10,9 @@ import yaml
 
 ################
 
+# TODO: refactor the code to make it clearer what's the Hi-Kumo adapter and what is the HA adapter
 # TODO: figure out how to set and unset the "GREEN" state
 # TODO: figure out how to set and unset the "leave_home" state
-# TODO: expose the outside temperature as a separate sensor
 
 ################
 
@@ -65,8 +65,10 @@ class Device:
         self.target_temperature = 0
         self.outdoor_temperature = 0
         self.product_name = ""
-        self.discovery_topic = house.config.mqtt_discovery_prefix + "/climate/" + self.id + "/config"
+        self.climate_discovery_topic = house.config.mqtt_discovery_prefix + "/climate/" + self.id + "/config"
+        self.sensor_discovery_topic = house.config.mqtt_discovery_prefix + "/sensor/" + self.id + "/config"
         self.mqtt_config = {}
+        self.outdoor_temp_mqtt_config = {}
         self.topic_to_attr = {}
 
     def update_definitions(self, raw_definitions):
@@ -114,6 +116,11 @@ class Device:
             self.mqtt_config["fan_mode_command_topic"]: "fan_mode",
             self.mqtt_config["swing_mode_command_topic"]: "swing_mode"
         }
+        self.outdoor_temp_mqtt_config = {
+            "name": self.name + " (Outdoor temperature)",
+            "device_class": "temperature",
+            "state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/outdoor_temp"
+        }
 
     def register_mqtt(self, discovery):
         mqtt_client = self.house.mqtt_client
@@ -125,7 +132,8 @@ class Device:
         # TODO leave_home_state?
 
         if discovery:
-            mqtt_client.publish(self.discovery_topic, json.dumps(self.mqtt_config))
+            mqtt_client.publish(self.climate_discovery_topic, json.dumps(self.mqtt_config))
+            mqtt_client.publish(self.sensor_discovery_topic, json.dumps(self.outdoor_temp_mqtt_config))
 
     def unregister_mqtt(self, discovery):
         mqtt_client = self.house.mqtt_client
@@ -137,7 +145,8 @@ class Device:
         # TODO leave_home_state?
 
         if discovery:
-            mqtt_client.publish(self.discovery_topic, None)
+            mqtt_client.publish(self.climate_discovery_topic, None)
+            mqtt_client.publish(self.sensor_discovery_topic, None)
 
     def on_message(self, topic, payload):
         attr = self.topic_to_attr.get(topic, None)
@@ -178,6 +187,7 @@ class Device:
             mqtt_client.publish(self.mqtt_config["temperature_state_topic"], self.target_temperature)
             mqtt_client.publish(self.mqtt_config["fan_mode_state_topic"], self.fan_mode)
             mqtt_client.publish(self.mqtt_config["swing_mode_state_topic"], self.swing_mode)
+            mqtt_client.publish(self.outdoor_temp_mqtt_config["state_topic"], self.outdoor_temperature)
 
 
 ################
