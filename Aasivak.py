@@ -13,6 +13,9 @@ import yaml
 # TODO: refactor the code to make it clearer what's the Hi-Kumo adapter and what is the HA adapter
 # TODO: figure out how to set and unset the "GREEN" state
 # TODO: figure out how to set and unset the "leave_home" state
+# TODO: from reading the protocol variables and the webapp javascript (https://pastebin.com/HZKsEPjU), it seems there is
+#  a way to enable a "local mode" but I have not found how. I suspect (and secretly hope) that this would open a port on
+#  the local network that allows direct commands without the need for bouncing through the Hi-Kumo/Overkiz cloud.
 
 ################
 
@@ -176,8 +179,8 @@ class Device:
             "label": "change air to air heat pump command"
         }
         self.house.hikumo.post_api(self.house.config.api_url + "/" + "exec/apply", data,
-                            {'content-type': 'application/json; charset=UTF-8',
-                             'user-agent': self.house.config.api_user_agent})
+                                   {'content-type': 'application/json; charset=UTF-8',
+                                    'user-agent': self.house.config.api_user_agent})
 
     def publish_state(self):
         mqtt_client = self.house.mqtt_client
@@ -187,7 +190,8 @@ class Device:
             mqtt_client.publish(self.mqtt_config["temperature_state_topic"], self.target_temperature)
             mqtt_client.publish(self.mqtt_config["fan_mode_state_topic"], self.fan_mode)
             mqtt_client.publish(self.mqtt_config["swing_mode_state_topic"], self.swing_mode)
-            mqtt_client.publish(self.outdoor_temp_mqtt_config["state_topic"], self.outdoor_temperature)
+            # Temperature sensors work better as float in HA, even though Hi-Kumo rounds it as an int
+            mqtt_client.publish(self.outdoor_temp_mqtt_config["state_topic"], float(self.outdoor_temperature))
 
 
 ################
