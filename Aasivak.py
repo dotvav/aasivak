@@ -122,6 +122,7 @@ class Device:
         self.outdoor_temp_mqtt_config = {
             "name": self.name + " (Outdoor temperature)",
             "device_class": "temperature",
+            "unit_of_measurement": self.house.config.temperature_unit,
             "state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/outdoor_temp"
         }
 
@@ -213,6 +214,7 @@ class Config:
     logging_level = "INFO"
     refresh_delays = [3, 5, 10, 30]
     refresh_delay_randomness = 2
+    temperature_unit = "°C"
 
     def __init__(self, raw):
         self.api_username = raw["api_username"]
@@ -231,7 +233,7 @@ class Config:
         self.logging_level = raw.get("logging_level", self.logging_level)
         self.refresh_delays = raw.get("refresh_delays", self.refresh_delays)
         self.refresh_delay_randomness = raw.get("refresh_delay_randomness", self.refresh_delay_randomness)
-
+        self.temperature_unit = raw.get("temperature_unit",self.temperature_unit)
 
 ################
 
@@ -331,11 +333,11 @@ class House:
 
     @staticmethod
     def read_config():
-        with open("config/default.yml", 'r') as yml_file:
+        with open("config/default.yml", 'r', encoding="utf-8") as yml_file:
             raw_default_config = yaml.safe_load(yml_file)
 
         try:
-            with open("config/local.yml", 'r') as yml_file:
+            with open("config/local.yml", 'r', encoding="utf-8") as yml_file:
                 raw_local_config = yaml.safe_load(yml_file)
                 raw_default_config.update(raw_local_config)
         except IOError:

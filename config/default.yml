@@ -12,6 +12,8 @@ mqtt_client_name: aasivak
 #mqtt_username:
 #mqtt_password: 
 
+temperature_unit: °C
+
 refresh_delays:
   - 3
   - 5
