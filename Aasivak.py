@@ -136,8 +136,8 @@ class Device:
         # TODO leave_home_state?
 
         if discovery:
-            mqtt_client.publish(self.climate_discovery_topic, json.dumps(self.climate_mqtt_config), qos=1)
-            mqtt_client.publish(self.sensor_discovery_topic, json.dumps(self.outdoor_temp_mqtt_config), qos=1)
+            mqtt_client.publish(self.climate_discovery_topic, json.dumps(self.climate_mqtt_config), qos=1, retain=True)
+            mqtt_client.publish(self.sensor_discovery_topic, json.dumps(self.outdoor_temp_mqtt_config), qos=1, retain=True)
 
     def unregister_mqtt(self, discovery):
         mqtt_client = self.house.mqtt_client
@@ -149,8 +149,8 @@ class Device:
         # TODO leave_home_state?
 
         if discovery:
-            mqtt_client.publish(self.climate_discovery_topic, None)
-            mqtt_client.publish(self.sensor_discovery_topic, None)
+            mqtt_client.publish(self.climate_discovery_topic, None, retain=True)
+            mqtt_client.publish(self.sensor_discovery_topic, None, retain=True)
 
     def on_message(self, topic, payload):
         attr = self.topic_to_attr.get(topic, None)
@@ -186,13 +186,13 @@ class Device:
     def publish_state(self):
         mqtt_client = self.house.mqtt_client
         if mqtt_client is not None:
-            mqtt_client.publish(self.climate_mqtt_config["current_temperature_topic"], self.temperature)
-            mqtt_client.publish(self.climate_mqtt_config["mode_state_topic"], self.modes_map[self.mode] or "auto")
-            mqtt_client.publish(self.climate_mqtt_config["temperature_state_topic"], self.target_temperature)
-            mqtt_client.publish(self.climate_mqtt_config["fan_mode_state_topic"], self.fan_mode)
-            mqtt_client.publish(self.climate_mqtt_config["swing_mode_state_topic"], self.swing_mode)
+            mqtt_client.publish(self.climate_mqtt_config["current_temperature_topic"], self.temperature, retain=True)
+            mqtt_client.publish(self.climate_mqtt_config["mode_state_topic"], self.modes_map[self.mode] or "auto", retain=True)
+            mqtt_client.publish(self.climate_mqtt_config["temperature_state_topic"], self.target_temperature, retain=True)
+            mqtt_client.publish(self.climate_mqtt_config["fan_mode_state_topic"], self.fan_mode, retain=True)
+            mqtt_client.publish(self.climate_mqtt_config["swing_mode_state_topic"], self.swing_mode, retain=True)
             # Temperature sensors work better as float in HA, even though Hi-Kumo rounds it as an int
-            mqtt_client.publish(self.outdoor_temp_mqtt_config["state_topic"], float(self.outdoor_temperature))
+            mqtt_client.publish(self.outdoor_temp_mqtt_config["state_topic"], float(self.outdoor_temperature), retain=True)
 
 
 ################
