@@ -80,13 +80,21 @@ class Device:
             if definition_name in Device.raw_definition_attributes:
                 setattr(self, Device.raw_definition_attributes[definition_name], definition["values"])
 
+    # Temperatures in HiKumo seem to be encoded as signed bytes and transported as integers in the json API
+    def sanitize_temp(self, string):
+        temp = int(float(string))
+        if temp > 127:
+            return temp - 256
+        else:
+            return temp
+
     def update_states(self, raw_states):
         for state in raw_states:
             state_name = state["name"]
             if state_name in Device.raw_state_attributes:
                 attr_name = Device.raw_state_attributes[state_name]
                 if attr_name in self.int_attributes:
-                    setattr(self, attr_name, int(float(state["value"])))
+                    setattr(self, attr_name, self.sanitize_temp(state["value"]))
                 else:
                     setattr(self, attr_name, state["value"])
 
@@ -234,6 +242,7 @@ class Config:
         self.refresh_delays = raw.get("refresh_delays", self.refresh_delays)
         self.refresh_delay_randomness = raw.get("refresh_delay_randomness", self.refresh_delay_randomness)
         self.temperature_unit = raw.get("temperature_unit",self.temperature_unit)
+
 
 ################
 
