@@ -16,7 +16,7 @@ You will need an MQTT broker: [MQTT broker](https://www.home-assistant.io/docs/m
 And to activate MQTT discovery: [MQTT discovery](https://www.home-assistant.io/docs/mqtt/discovery/)
 
 ### Clone the Aasivak repo
-```
+```shell script
 git clone https://www.github.com/dotvav/aasivak.git
 cd aasivak
 pip3 install -r requirements.txt
@@ -48,7 +48,7 @@ Property | Usage | Note
 
 
 ### Start Aasivak manually
-```
+```shell script
 python3 Aasivak.py
 ```
 
@@ -71,11 +71,23 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 ```
+You may want to start this after the MQTT broker or HA has started: add the appropriate ```After=``` statement.
 
 Run the following to enable and run the service, and see what its status is:
-```
+```shell script
 sudo systemctl enable aasivak.service
 sudo systemctl start aasivak.service
+sudo systemctl status aasivak.service
+```
+
+## Pull the latest version from Github
+Get the latest source
+```shell script
+cd aasivak
+git pull origin master
+```
+Then restart the systemd service (if you created one):
+```shell script
 sudo systemctl status aasivak.service
 ```
 
