@@ -261,14 +261,15 @@ class HikumoAdapter:
 
         if response is None or response.status_code != 200:
             if retry > 0:
-                logging.debug("API call failed. Retrying.")
+                logging.debug("API call failed with status code {}. Retrying.", response.status_code)
                 time.sleep(self.delayer.next())
                 self.login()
                 return self.get_api(url, data, headers, retry - 1)
             else:
-                logging.warning("API call failed. No more retry.")
-                return {}
+                logging.warning("API call failed with status code {}. No more retry.", response.status_code)
+                return response
         else:
+
             logging.debug("API response: %s", response.text)
             return response
 
@@ -281,13 +282,13 @@ class HikumoAdapter:
 
         if response is None or response.status_code != 200:
             if retry > 0:
-                logging.debug("API call failed. Retrying.")
+                logging.debug("API call failed with status code {}. Retrying.", response.status_code)
                 time.sleep(self.delayer.next())
                 self.login()
                 return self.post_api(url, data, headers, retry - 1)
             else:
-                logging.warning("API call failed. No more retry.")
-                return {}
+                logging.warning("API call failed with status code {}. No more retry.", response.status_code)
+                return response
         else:
             logging.debug("API response: %s", response.text)
             return response
@@ -305,7 +306,10 @@ class HikumoAdapter:
         data = {}
         headers = {'user-agent': self.config.api_user_agent}
         response = self.get_api(url, data, headers, 1)
-        return json.loads(response.text)
+        if response is None:
+            return {}
+        else:
+            return json.loads(response.text)
 
 
 ################
@@ -384,7 +388,12 @@ class House:
                 device.publish_state()
 
     def setup(self):
-        raw_data = self.hikumo.fetch_api_setup_data()
+        raw_data = None
+        while raw_data is None or len(raw_data) == 0:
+            if raw_data is None:
+                time.sleep(self.delayer.next())
+            raw_data = self.hikumo.fetch_api_setup_data()
+
         for raw_device in raw_data["devices"]:
             if raw_device["type"] == 1:
                 device_id = raw_device["oid"]
