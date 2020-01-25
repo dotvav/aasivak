@@ -259,14 +259,19 @@ class HikumoAdapter:
             logging.warning(e)
             response = None
 
-        if response is None or response.status_code != 200:
+        if response is None:
+            status_code = -1
+        else:
+            status_code = response.status_code
+
+        if status_code != 200:
             if retry > 0:
-                logging.debug("API call failed with status code {}. Retrying.", response.status_code)
+                logging.debug("API call failed with status code {}. Retrying.", status_code)
                 time.sleep(self.delayer.next())
                 self.login()
                 return self.get_api(url, data, headers, retry - 1)
             else:
-                logging.warning("API call failed with status code {}. No more retry.", response.status_code)
+                logging.warning("API call failed with status code {}. No more retry.", status_code)
                 return response
         else:
 
@@ -280,14 +285,19 @@ class HikumoAdapter:
             logging.warning(e)
             response = None
 
-        if response is None or response.status_code != 200:
+        if response is None:
+            status_code = -1
+        else:
+            status_code = response.status_code
+
+        if status_code != 200:
             if retry > 0:
-                logging.debug("API call failed with status code {}. Retrying.", response.status_code)
+                logging.debug("API call failed with status code {}. Retrying.", status_code)
                 time.sleep(self.delayer.next())
                 self.login()
                 return self.post_api(url, data, headers, retry - 1)
             else:
-                logging.warning("API call failed with status code {}. No more retry.", response.status_code)
+                logging.warning("API call failed with status code {}. No more retry.", status_code)
                 return response
         else:
             logging.debug("API response: %s", response.text)
