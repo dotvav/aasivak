@@ -68,13 +68,11 @@ class Device:
         self.target_temperature = 0
         self.outdoor_temperature = 0
         self.product_name = ""
-        self.online = ""
+        self.available = ""
         self.climate_discovery_topic = house.config.mqtt_discovery_prefix + "/climate/" + self.id + "/config"
         self.outdoor_temp_sensor_discovery_topic = house.config.mqtt_discovery_prefix + "/sensor/" + self.id + "_outdoor_temp/config"
-        self.online_sensor_discovery_topic = house.config.mqtt_discovery_prefix + "/sensor/" + self.id + "_online/config"
         self.climate_mqtt_config = {}
         self.outdoor_temp_sensor_mqtt_config = {}
-        self.online_sensor_mqtt_config = {}
         self.topic_to_attr = {}
 
     def update_definitions(self, raw_definitions):
@@ -91,8 +89,11 @@ class Device:
         else:
             return temp
 
-    def update_states(self, raw_states, online):
-        self.online = online
+    def update_states(self, raw_states, availability):
+        if availability:
+            self.available = "online"
+        else:
+            self.available = "offline"
         for state in raw_states:
             state_name = state["name"]
             if state_name in Device.raw_state_attributes:
@@ -114,6 +115,7 @@ class Device:
             "temperature_state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/target_temp",
             "fan_mode_state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/fan_mode",
             "swing_mode_state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/swing_mode",
+            "availability_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/availability",
 
             "mode_command_topic": self.house.config.mqtt_command_prefix + "/" + self.id + "/mode",
             "temperature_command_topic": self.house.config.mqtt_command_prefix + "/" + self.id + "/target_temp",
@@ -137,10 +139,6 @@ class Device:
             "unit_of_measurement": self.house.config.temperature_unit,
             "state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/outdoor_temp"
         }
-        self.online_sensor_mqtt_config = {
-            "name": self.name + " (Online)",
-            "state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/online"
-        }
 
     def register_mqtt(self, discovery):
         mqtt_client = self.house.mqtt_client
@@ -155,8 +153,7 @@ class Device:
             mqtt_client.publish(self.climate_discovery_topic, json.dumps(self.climate_mqtt_config), qos=1, retain=True)
             mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic,
                                 json.dumps(self.outdoor_temp_sensor_mqtt_config), qos=1, retain=True)
-            mqtt_client.publish(self.online_sensor_discovery_topic,
-                                json.dumps(self.online_sensor_mqtt_config), qos=1, retain=True)
+
 
     def unregister_mqtt(self, discovery):
         mqtt_client = self.house.mqtt_client
@@ -170,7 +167,6 @@ class Device:
         if discovery:
             mqtt_client.publish(self.climate_discovery_topic, None, retain=True)
             mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic, None, retain=True)
-            mqtt_client.publish(self.online_sensor_discovery_topic, None, retain=True)
 
 
     def on_message(self, topic, payload):
@@ -212,9 +208,10 @@ class Device:
             mqtt_client.publish(self.climate_mqtt_config["temperature_state_topic"], self.target_temperature, retain=True)
             mqtt_client.publish(self.climate_mqtt_config["fan_mode_state_topic"], self.fan_mode, retain=True)
             mqtt_client.publish(self.climate_mqtt_config["swing_mode_state_topic"], self.swing_mode, retain=True)
+            mqtt_client.publish(self.climate_mqtt_config["availability_topic"], self.available, retain=True)
             # Temperature sensors work better as float in HA, even though Hi-Kumo rounds it as an int
             mqtt_client.publish(self.outdoor_temp_sensor_mqtt_config["state_topic"], float(self.outdoor_temperature), retain=True)
-            mqtt_client.publish(self.online_sensor_mqtt_config["state_topic"], float(self.online), retain=True)
+
 
 ################
 
@@ -402,7 +399,7 @@ class House:
                 device_id = raw_device["oid"]
                 name = raw_device["label"]
                 url = raw_device["deviceURL"]
-                available = raw_device["available"]
+                available = bool(raw_device["available"])
                 if device_id in self.devices:
                     device = self.devices[device_id]
                 else:
@@ -423,7 +420,7 @@ class House:
                 device_id = raw_device["oid"]
                 name = raw_device["label"]
                 url = raw_device["deviceURL"]
-                available = raw_device["available"]
+                available = bool(raw_device["available"])
                 if device_id in self.devices:
                     device = self.devices[device_id]
                 else:
