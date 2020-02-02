@@ -92,9 +92,34 @@ sudo systemctl status aasivak.service
 ```
 
 ## Dependencies
-
 - requests
 - paho-mqtt
 - pyyaml
 
 
+## Example of HomeAssistant automation
+Hi-Kumo's weekly scheduler is annoyingly ignoring the swing mode and fan speed setup of my units, and always reset them
+to their default value when it sends an update (blowing directly downwards with "auto" speed). The AC unit is just over
+my bed and I hate getting blown hot air in my face while I sleep. I have set the below automation in homeassistant: 
+whenever the fan_mode is set to 'off' (which means Hi-Kumo has sent a command to my unit) I reset it to 'both', and sets
+the fan speed to 'silent'. The only downside is that the unit is the 3 beeps that the AC unit makes (one because of the
+first Hi-Kumo command, one for resetting the swing mode, and one for resetting the fan speed). 
+
+```yaml
+- id: '1234567890123'
+  alias: Reset AC swing mode and fan speed in the bedroom
+  description: Reset AC swing mode and fan speed in the bedroom
+  trigger:
+  - platform: template
+    value_template: '{{ is_state_attr(''climate.bedroom'', ''swing_mode'', ''stop'') }}'
+  condition: []
+  action:
+  - service: climate.set_swing_mode
+    data:
+      entity_id: climate.bedroom
+      swing_mode: both
+  - service: climate.set_fan_mode
+    data:
+      entity_id: climate.bedroom
+      fan_mode: silent
+```
