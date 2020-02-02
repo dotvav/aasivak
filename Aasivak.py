@@ -264,7 +264,7 @@ class HikumoAdapter:
 
     def get_api(self, url, data, headers, retry=1):
         try:
-            response = self.session.get(url=url, data=data, headers=headers)
+            response = self.session.get(url=url, data=data, headers=headers, timeout=(2, 5))
         except Exception as e:
             logging.warning(e)
             response = None
@@ -290,7 +290,7 @@ class HikumoAdapter:
 
     def post_api(self, url, data, headers, retry=1):
         try:
-            response = self.session.post(url=url, json=data, headers=headers)
+            response = self.session.post(url=url, json=data, headers=headers, timeout=(2, 5))
         except Exception as e:
             logging.warning(e)
             response = None
@@ -318,7 +318,7 @@ class HikumoAdapter:
         data = {'userId': self.config.api_username, 'userPassword': self.config.api_password}
         headers = {'user-agent': self.config.api_user_agent,
                    'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}
-        self.session.post(url, data=data, headers=headers)
+        self.session.post(url, data=data, headers=headers, timeout=(2, 5))
         logging.info("Logged into Hi-Kumo")
 
     def fetch_api_setup_data(self):
