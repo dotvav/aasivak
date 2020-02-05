@@ -2,6 +2,7 @@ import json
 import random
 import time
 import logging
+from urllib.parse import urlparse
 
 import paho.mqtt.client as mqtt
 import requests
@@ -359,6 +360,7 @@ class House:
         if self.config.mqtt_username is not None:
             self.mqtt_client.username_pw_set(self.config.mqtt_username, self.config.mqtt_password)
         self.mqtt_client.connect(self.config.mqtt_host, self.config.mqtt_port)
+        self.gateways = {}
         self.devices = {}
         self.delayer = Delayer(self.config.refresh_delays, self.config.refresh_delay_randomness)
         self.hikumo = HikumoAdapter(self.config)
@@ -392,35 +394,25 @@ class House:
             device.unregister_mqtt(True)
         self.mqtt_client.loop_stop()
 
-    def refresh_all(self):
+    def is_available(self, url):
+        gateway_id = urlparse(url).netloc
+        raw_gateway = self.gateways[gateway_id]
+        if raw_gateway is not None:
+            return bool(raw_gateway["alive"])
+        else:
+            return False
+
+    def update_all_devices(self):
         raw_data = self.hikumo.fetch_api_setup_data()
+        for raw_gateway in raw_data["gateways"]:
+            gateway_id = raw_gateway["gatewayId"]
+            self.gateways[gateway_id] = raw_gateway
         for raw_device in raw_data["devices"]:
             if raw_device["type"] == 1:
                 device_id = raw_device["oid"]
                 name = raw_device["label"]
                 url = raw_device["deviceURL"]
-                available = bool(raw_device["available"])
-                if device_id in self.devices:
-                    device = self.devices[device_id]
-                else:
-                    device = Device(self, device_id, name, url)
-                    self.devices[device.id] = device
-                device.update_states(raw_device["states"], available)
-                device.publish_state()
-
-    def setup(self):
-        raw_data = None
-        while raw_data is None or len(raw_data) == 0:
-            if raw_data is None:
-                time.sleep(self.delayer.next())
-            raw_data = self.hikumo.fetch_api_setup_data()
-
-        for raw_device in raw_data["devices"]:
-            if raw_device["type"] == 1:
-                device_id = raw_device["oid"]
-                name = raw_device["label"]
-                url = raw_device["deviceURL"]
-                available = bool(raw_device["available"])
+                available = self.is_available(url)
                 if device_id in self.devices:
                     device = self.devices[device_id]
                 else:
@@ -428,8 +420,18 @@ class House:
                     self.devices[device.id] = device
                 device.update_definitions(raw_device["definition"]["states"])
                 device.update_states(raw_device["states"], available)
-                device.update_mqtt_config()
-                logging.info("Device found: %s (%s|%s)", device.name, device.id, device.command_url)
+
+    def refresh_all(self):
+        self.update_all_devices()
+        for device in self.devices.values():
+            device.publish_state()
+
+    def setup(self):
+        self.update_all_devices()
+        for device in self.devices.values():
+            device.update_mqtt_config()
+            device.publish_state()
+            logging.info("Device found: %s (%s|%s)", device.name, device.id, device.command_url)
 
     def loop_start(self):
         self.setup()
