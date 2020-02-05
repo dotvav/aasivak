@@ -410,22 +410,23 @@ class House:
 
     def update_all_devices(self):
         raw_data = self.hikumo.fetch_api_setup_data()
-        for raw_gateway in raw_data["gateways"]:
-            gateway_id = raw_gateway["gatewayId"]
-            self.gateways[gateway_id] = raw_gateway
-        for raw_device in raw_data["devices"]:
-            if raw_device["type"] == 1:
-                device_id = raw_device["oid"]
-                name = raw_device["label"]
-                url = raw_device["deviceURL"]
-                available = self.is_available(url)
-                if device_id in self.devices:
-                    device = self.devices[device_id]
-                else:
-                    device = Device(self, device_id, name, url)
-                    self.devices[device.id] = device
-                device.update_definitions(raw_device["definition"]["states"])
-                device.update_states(raw_device["states"], available)
+        if "gateways" in raw_data and "devices" in raw_data:
+            for raw_gateway in raw_data["gateways"]:
+                gateway_id = raw_gateway["gatewayId"]
+                self.gateways[gateway_id] = raw_gateway
+            for raw_device in raw_data["devices"]:
+                if raw_device["type"] == 1:
+                    device_id = raw_device["oid"]
+                    name = raw_device["label"]
+                    url = raw_device["deviceURL"]
+                    available = self.is_available(url)
+                    if device_id in self.devices:
+                        device = self.devices[device_id]
+                    else:
+                        device = Device(self, device_id, name, url)
+                        self.devices[device.id] = device
+                    device.update_definitions(raw_device["definition"]["states"])
+                    device.update_states(raw_device["states"], available)
 
     def refresh_all(self):
         self.update_all_devices()
