@@ -319,7 +319,7 @@ class HikumoAdapter:
         data = {'userId': self.config.api_username, 'userPassword': self.config.api_password}
         headers = {'user-agent': self.config.api_user_agent,
                    'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}
-        self.session.post(url, data=data, headers=headers, timeout=(2, 5))
+        self.session.post(url, data=data, headers=headers, timeout=(5, 10))
         logging.info("Logged into Hi-Kumo")
 
     def fetch_api_setup_data(self):
