@@ -39,6 +39,9 @@ Property | Usage | Note
 `mqtt_reset_topic` | the MQTT topic where Aasivak receives reset commands | Send any message on this topic to tell Aasivak it must re-register all the devices. You should create an automation to do that every time HA starts.
 **`mqtt_host`** | the host name or ip address of the MQTT broker | Use `localhost` or `127.0.0.1` if the MQTT broker runs on the same machine as Aasivak.
 `mqtt_client_name` | the name that Aasivak will us on MQTT | You should probably not touch this.
+`mqtt_discovery` | `on` to enable MQTT auto-discovery in HA | Change to `off` if you don't use HA or if you prefer configuring your devices manually 
+`mqtt_config_retain` | `on` to retain configuration messages in MQTT | Change to `off` if you cannotor prefer not to retain config messages
+`mqtt_state_retain` | `on` to retain state messages in MQTT | Change to `off` if you cannot or prefer not to retain state messages
 `mqtt_username` | the MQTT broker username | This is needed only if the MQTT broker requires an authenticated connection.
 `mqtt_password` | the MQTT broker password | This is needed only if the MQTT broker requires an authenticated connection.
 `temperature_unit` | the temperature measurement unit | `°C` by default.

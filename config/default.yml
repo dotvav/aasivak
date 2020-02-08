@@ -9,6 +9,9 @@ mqtt_command_prefix: hikumo/command
 mqtt_reset_topic: hikumo/reset
 mqtt_host: 127.0.0.1
 mqtt_client_name: aasivak
+mqtt_discovery: on
+mqtt_config_retain: on
+mqtt_state_retain: on
 #mqtt_username:
 #mqtt_password: 
 

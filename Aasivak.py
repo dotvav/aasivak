@@ -141,7 +141,7 @@ class Device:
             "state_topic": self.house.config.mqtt_state_prefix + "/" + self.id + "/outdoor_temp"
         }
 
-    def register_mqtt(self, discovery):
+    def register_mqtt(self):
         mqtt_client = self.house.mqtt_client
 
         mqtt_client.subscribe(self.climate_mqtt_config["mode_command_topic"], 0)
@@ -150,13 +150,15 @@ class Device:
         mqtt_client.subscribe(self.climate_mqtt_config["swing_mode_command_topic"], 0)
         # TODO leave_home_state?
 
-        if discovery:
-            mqtt_client.publish(self.climate_discovery_topic, json.dumps(self.climate_mqtt_config), qos=1, retain=True)
+        if self.house.config.mqtt_discovery:
+            retain = self.house.config.mqtt_config_retain
+            mqtt_client.publish(self.climate_discovery_topic,
+                                json.dumps(self.climate_mqtt_config), qos=1, retain=retain)
             mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic,
-                                json.dumps(self.outdoor_temp_sensor_mqtt_config), qos=1, retain=True)
+                                json.dumps(self.outdoor_temp_sensor_mqtt_config), qos=1, retain=retain)
 
 
-    def unregister_mqtt(self, discovery):
+    def unregister_mqtt(self):
         mqtt_client = self.house.mqtt_client
 
         mqtt_client.unsubscribe(self.climate_mqtt_config["mode_command_topic"], 0)
@@ -165,9 +167,10 @@ class Device:
         mqtt_client.unsubscribe(self.climate_mqtt_config["swing_mode_command_topic"], 0)
         # TODO leave_home_state?
 
-        if discovery:
-            mqtt_client.publish(self.climate_discovery_topic, None, retain=True)
-            mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic, None, retain=True)
+        if self.house.config.mqtt_discovery:
+            retain = self.house.config.mqtt_config_retain
+            mqtt_client.publish(self.climate_discovery_topic, None, retain=retain)
+            mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic, None, retain=retain)
 
 
     def on_message(self, topic, payload):
@@ -203,15 +206,23 @@ class Device:
 
     def publish_state(self):
         mqtt_client = self.house.mqtt_client
+        retain = self.house.config.mqtt_state_retain
         if mqtt_client is not None:
-            mqtt_client.publish(self.climate_mqtt_config["current_temperature_topic"], self.temperature, retain=True)
-            mqtt_client.publish(self.climate_mqtt_config["mode_state_topic"], self.modes_map[self.mode] or "auto", retain=True)
-            mqtt_client.publish(self.climate_mqtt_config["temperature_state_topic"], self.target_temperature, retain=True)
-            mqtt_client.publish(self.climate_mqtt_config["fan_mode_state_topic"], self.fan_mode, retain=True)
-            mqtt_client.publish(self.climate_mqtt_config["swing_mode_state_topic"], self.swing_mode, retain=True)
-            mqtt_client.publish(self.climate_mqtt_config["availability_topic"], self.available, retain=True)
+            mqtt_client.publish(self.climate_mqtt_config["current_temperature_topic"],
+                                self.temperature, retain=retain)
+            mqtt_client.publish(self.climate_mqtt_config["mode_state_topic"],
+                                self.modes_map[self.mode] or "auto", retain=retain)
+            mqtt_client.publish(self.climate_mqtt_config["temperature_state_topic"],
+                                self.target_temperature, retain=retain)
+            mqtt_client.publish(self.climate_mqtt_config["fan_mode_state_topic"],
+                                self.fan_mode, retain=retain)
+            mqtt_client.publish(self.climate_mqtt_config["swing_mode_state_topic"],
+                                self.swing_mode, retain=retain)
+            mqtt_client.publish(self.climate_mqtt_config["availability_topic"],
+                                self.available, retain=retain)
             # Temperature sensors work better as float in HA, even though Hi-Kumo rounds it as an int
-            mqtt_client.publish(self.outdoor_temp_sensor_mqtt_config["state_topic"], float(self.outdoor_temperature), retain=True)
+            mqtt_client.publish(self.outdoor_temp_sensor_mqtt_config["state_topic"],
+                                float(self.outdoor_temperature), retain=retain)
 
 
 ################
@@ -227,6 +238,9 @@ class Config:
     mqtt_reset_topic = "hikumo/reset"
     mqtt_host = "127.0.0.1"
     mqtt_port = 1883
+    mqtt_discovery = True
+    mqtt_config_retain = True
+    mqtt_state_retain = True
     mqtt_username = None
     mqtt_password = None
     mqtt_client_name = "aasivak"
@@ -246,6 +260,9 @@ class Config:
         self.mqtt_reset_topic = raw.get("mqtt_reset_topic", self.mqtt_reset_topic)
         self.mqtt_host = raw.get("mqtt_host", self.mqtt_host)
         self.mqtt_port = raw.get("mqtt_port", self.mqtt_port)
+        self.mqtt_discovery = raw.get("mqtt_discovery", self.mqtt_discovery)
+        self.mqtt_config_retain = raw.get("mqtt_config_retain", self.mqtt_config_retain)
+        self.mqtt_state_retain = raw.get("mqtt_state_retain", self.mqtt_state_retain)
         self.mqtt_username = raw.get("mqtt_username", self.mqtt_username)
         self.mqtt_password = raw.get("mqtt_password", self.mqtt_password)
         self.mqtt_client_name = raw.get("mqtt_client_name", self.mqtt_client_name)
@@ -389,7 +406,7 @@ class House:
     def register_all(self):
         self.mqtt_client.loop_start()
         for device_id, device in self.devices.items():
-            device.register_mqtt(True)
+            device.register_mqtt()
         self.mqtt_client.subscribe(self.config.mqtt_reset_topic, 0)
         self.mqtt_client.on_message = self.on_message
 
@@ -397,7 +414,7 @@ class House:
         self.mqtt_client.on_message(None)
         self.mqtt_client.unsubscribe(self.config.mqtt_reset_topic, 0)
         for device_id, device in self.devices.items():
-            device.unregister_mqtt(True)
+            device.unregister_mqtt()
         self.mqtt_client.loop_stop()
 
     def is_available(self, url):
