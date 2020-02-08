@@ -43,7 +43,7 @@ class Device:
     int_attributes = [
         "temperature",
         "target_temperature",
-        "self.outdoor_temperature"
+        "outdoor_temperature"
     ]
 
     # Key = Hi-Kumo mode, Value = HA mode
