@@ -17,6 +17,8 @@ mqtt_state_retain: on
 
 temperature_unit: °C
 
+action_delay: 0.5
+
 refresh_delays:
   - 3
   - 5

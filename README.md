@@ -45,6 +45,7 @@ Property | Usage | Note
 `mqtt_username` | the MQTT broker username | This is needed only if the MQTT broker requires an authenticated connection.
 `mqtt_password` | the MQTT broker password | This is needed only if the MQTT broker requires an authenticated connection.
 `temperature_unit` | the temperature measurement unit | `°C` by default.
+`action_delay` | how many seconds to wait before executing an action | `0.5` by default. The more you wait, the more likely consecutive actions will be sent in one single command to Hi-Kumo. This can be useful with automations that trigger several actions if you don't want the AC unit to beep as many times.
 `refresh_delays` | list of waiting durations before calling the Hi-Kumo API to refresh devices state | If you set `[2, 5, 10, 30]` then Aasivak will call the Hi-Kumo API to refresh its state after 2s, then 5s, then 10s, and then every 30s. The delay is reset to 2s when Aasivak receives a command from HA. Some randomness is added to these delays: every time Aasivak needs to wait, it adds or remove up to `logging_delay_randomness/2` to the delay. 
 `refresh_delay_randomness` | maximum number of seconds to add to all the waiting durations | See `refresh_delays`. Use `0` for no randomness.
 `logging_level` | Aasivak's logging level | INFO

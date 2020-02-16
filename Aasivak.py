@@ -1,5 +1,6 @@
 import json
 import random
+import threading
 import time
 import logging
 from urllib.parse import urlparse
@@ -75,6 +76,7 @@ class Device:
         self.climate_mqtt_config = {}
         self.outdoor_temp_sensor_mqtt_config = {}
         self.topic_to_attr = {}
+        self.state_dirty = False  # state is considered dirty when changed locally and not yet sent to HiKumo
 
     def update_definitions(self, raw_definitions):
         for definition in raw_definitions:
@@ -91,6 +93,10 @@ class Device:
             return temp
 
     def update_states(self, raw_states, availability):
+        if self.state_dirty:
+            # Do not update the current state of the device while it is dirty
+            return
+
         if availability:
             self.available = "online"
         else:
@@ -157,7 +163,6 @@ class Device:
             mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic,
                                 json.dumps(self.outdoor_temp_sensor_mqtt_config), qos=1, retain=retain)
 
-
     def unregister_mqtt(self):
         mqtt_client = self.house.mqtt_client
 
@@ -172,17 +177,21 @@ class Device:
             mqtt_client.publish(self.climate_discovery_topic, None, retain=retain)
             mqtt_client.publish(self.outdoor_temp_sensor_discovery_topic, None, retain=retain)
 
-
     def on_message(self, topic, payload):
+        self.state_dirty = True
         attr = self.topic_to_attr.get(topic, None)
         if attr is not None:
             if attr in self.int_attributes:
                 setattr(self, attr, int(float(payload)))
             else:
                 setattr(self, attr, payload)
-            self.send_state()
+            t = threading.Timer(self.house.config.action_delay, self.send_state)
+            t.start()
 
     def send_state(self):
+        if not self.state_dirty:
+            return
+        self.state_dirty = False
         data = {
             "actions": [{
                 "commands": [{
@@ -245,6 +254,7 @@ class Config:
     mqtt_password = None
     mqtt_client_name = "aasivak"
     logging_level = "INFO"
+    action_delay = 0.5
     refresh_delays = [3, 5, 10, 30]
     refresh_delay_randomness = 2
     temperature_unit = "°C"
@@ -267,6 +277,7 @@ class Config:
         self.mqtt_password = raw.get("mqtt_password", self.mqtt_password)
         self.mqtt_client_name = raw.get("mqtt_client_name", self.mqtt_client_name)
         self.logging_level = raw.get("logging_level", self.logging_level)
+        self.action_delay = raw.get("action_delay", self.action_delay)
         self.refresh_delays = raw.get("refresh_delays", self.refresh_delays)
         self.refresh_delay_randomness = raw.get("refresh_delay_randomness", self.refresh_delay_randomness)
         self.temperature_unit = raw.get("temperature_unit",self.temperature_unit)
@@ -454,7 +465,7 @@ class House:
         self.update_all_devices()
         for device in self.devices.values():
             device.update_mqtt_config()
-            device.publish_state()
+            # device.publish_state()
             logging.info("Device found: %s (%s|%s)", device.name, device.id, device.command_url)
 
     def loop_start(self):
