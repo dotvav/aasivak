@@ -51,9 +51,11 @@ class Device:
     modes_map = {
         "auto": "auto",
         "cooling": "cool",
+        "autoCooling": "cool",
         "dehumidify": "dry",
         "fan": "fan_only",
-        "heating": "heat"
+        "heating": "heat",
+        "off": "off"
     }
 
     def __init__(self, house, device_id, name, command_url):
@@ -213,6 +215,12 @@ class Device:
                                    {'content-type': 'application/json; charset=UTF-8',
                                     'user-agent': self.house.config.api_user_agent})
 
+    def sanitize_mode(self):
+        if self.power_state == "off":
+            return "off"
+        else:
+            return self.modes_map[self.mode] or "auto"
+
     def publish_state(self):
         mqtt_client = self.house.mqtt_client
         retain = self.house.config.mqtt_state_retain
@@ -220,7 +228,7 @@ class Device:
             mqtt_client.publish(self.climate_mqtt_config["current_temperature_topic"],
                                 self.temperature, retain=retain)
             mqtt_client.publish(self.climate_mqtt_config["mode_state_topic"],
-                                self.modes_map[self.mode] or "auto", retain=retain)
+                                self.sanitize_mode(), retain=retain)
             mqtt_client.publish(self.climate_mqtt_config["temperature_state_topic"],
                                 self.target_temperature, retain=retain)
             mqtt_client.publish(self.climate_mqtt_config["fan_mode_state_topic"],
