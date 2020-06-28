@@ -51,10 +51,20 @@ class Device:
     modes_map = {
         "auto": "auto",
         "cooling": "cool",
-        "autoCooling": "cool",
+        #"autoCooling": "cool",
         "dehumidify": "dry",
         "fan": "fan_only",
         "heating": "heat",
+        "off": "off"
+    }
+
+    # Key = HA mode, Value = Hi-Kumo mode
+    rev_modes_map = {
+        "auto": "auto",
+        "cool": "cooling",
+        "dry": "dehumidify",
+        "fan_only": "fan",
+        "heat": "heating",
         "off": "off"
     }
 
@@ -85,6 +95,8 @@ class Device:
             definition_name = definition["qualifiedName"]
             if definition_name in Device.raw_definition_attributes:
                 setattr(self, Device.raw_definition_attributes[definition_name], definition["values"])
+        self.modes.remove("autoCooling")
+        self.modes.append("off")
 
     # Temperatures in HiKumo seem to be encoded as signed bytes and transported as integers in the json API
     def sanitize_temp(self, string):
@@ -109,6 +121,8 @@ class Device:
                 attr_name = Device.raw_state_attributes[state_name]
                 if attr_name in self.int_attributes:
                     setattr(self, attr_name, self.sanitize_temp(state["value"]))
+                elif attr_name == "mode" and state["value"] == "autoCooling":
+                    setattr(self, attr_name, "cooling")
                 else:
                     setattr(self, attr_name, state["value"])
 
@@ -186,7 +200,14 @@ class Device:
             if attr in self.int_attributes:
                 setattr(self, attr, int(float(payload)))
             else:
-                setattr(self, attr, payload)
+                if attr == "mode":
+                    if payload == "off":
+                        self.power_state = "off"
+                    else:
+                        self.power_state = "on"
+                        setattr(self, attr, self.read_mode(payload))
+                else:
+                    setattr(self, attr, payload)
             t = threading.Timer(self.house.config.action_delay, self.send_state)
             t.start()
 
@@ -215,11 +236,16 @@ class Device:
                                    {'content-type': 'application/json; charset=UTF-8',
                                     'user-agent': self.house.config.api_user_agent})
 
+    # Translates the internal mode into HA mode
     def sanitize_mode(self):
         if self.power_state == "off":
             return "off"
         else:
             return self.modes_map[self.mode] or "auto"
+
+    # Translates HA mode into internal mode
+    def read_mode(self, mode):
+        return self.rev_modes_map[mode] or "auto"
 
     def publish_state(self):
         mqtt_client = self.house.mqtt_client
