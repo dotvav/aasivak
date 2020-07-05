@@ -15,6 +15,9 @@ mqtt_state_retain: on
 #mqtt_username:
 #mqtt_password: 
 
+#http_proxy: socks5://localhost:9050
+#https_proxy: socks5://localhost:9050
+
 temperature_unit: °C
 
 action_delay: 0.5
