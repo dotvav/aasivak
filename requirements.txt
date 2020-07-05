@@ -1,4 +1,4 @@
 paho-mqtt
 PyYAML
-requests
-
+requests[socks]>=2.10.0
+PySocks

@@ -11,4 +11,4 @@ setup(
     description='Hikumo bridge for Home Assistant'
 )
 
-install_requires = ['paho-mqtt', 'PyYAML', 'requests']
+install_requires = ['paho-mqtt', 'PyYAML', 'requests[socks]', 'PySocks']

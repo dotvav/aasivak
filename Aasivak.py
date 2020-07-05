@@ -286,6 +286,8 @@ class Config:
     mqtt_state_retain = True
     mqtt_username = None
     mqtt_password = None
+    http_proxy = None
+    https_proxy = None
     mqtt_client_name = "aasivak"
     logging_level = "INFO"
     action_delay = 0.5
@@ -309,6 +311,8 @@ class Config:
         self.mqtt_state_retain = raw.get("mqtt_state_retain", self.mqtt_state_retain)
         self.mqtt_username = raw.get("mqtt_username", self.mqtt_username)
         self.mqtt_password = raw.get("mqtt_password", self.mqtt_password)
+        self.http_proxy = raw.get("http_proxy", self.http_proxy)
+        self.https_proxy = raw.get("https_proxy", self.https_proxy)
         self.mqtt_client_name = raw.get("mqtt_client_name", self.mqtt_client_name)
         self.logging_level = raw.get("logging_level", self.logging_level)
         self.action_delay = raw.get("action_delay", self.action_delay)
@@ -324,6 +328,12 @@ class HikumoAdapter:
         self.config = config
         self.delayer = Delayer([1], 2)
         self.session = requests.Session()
+        self.session.proxies = {}
+        if config.http_proxy:
+            self.session.proxies["http"] = config.http_proxy
+        if config.https_proxy:
+            self.session.proxies["https"] = config.https_proxy
+
 
     def get_api(self, url, data, headers, retry=1):
         try:
