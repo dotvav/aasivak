@@ -241,11 +241,11 @@ class Device:
         if self.power_state == "off":
             return "off"
         else:
-            return self.modes_map[self.mode] or "auto"
+            return self.modes_map/get(self.mode, "auto")
 
     # Translates HA mode into internal mode
     def read_mode(self, mode):
-        return self.rev_modes_map[mode] or "auto"
+        return self.rev_modes_map.get(mode, "auto")
 
     def publish_state(self):
         mqtt_client = self.house.mqtt_client
