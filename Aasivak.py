@@ -241,7 +241,7 @@ class Device:
         if self.power_state == "off":
             return "off"
         else:
-            return self.modes_map/get(self.mode, "auto")
+            return self.modes_map.get(self.mode, "auto")
 
     # Translates HA mode into internal mode
     def read_mode(self, mode):
