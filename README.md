@@ -1,3 +1,15 @@
+# NOT MAINTAINED ANYMORE
+
+Hi, 
+
+This bridge has served me well for a few years. Some of you have used it, forked it. As an HomeAssistant user, I am now more fulfilled with the official [Overkiz integration](https://www.home-assistant.io/integrations/overkiz/). I have joined forces with the talented contributors of this project to get the same functionnality directly in the stock HomeAssistant, starting from version [2023.12](https://www.home-assistant.io/changelogs/core-2023.12).
+
+Feel free to keep using, forking and improving this project if you find it useful.
+
+Cheers!
+
+---
+
 ## Aasivak
 
 This program bridges your Hi-Kumo heater/air conditioner system with Home Assistant.
